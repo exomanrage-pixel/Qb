@@ -15,7 +15,7 @@ document.getElementById('executeBtn').addEventListener('click', () => {
         return;
     }
 
-    // Save payload to local storage so the target Google Site page can read it across tabs
+    // Save payload to localStorage so it persists across page reloads and new tabs
     const payload = {
         titles: titlesArray,
         content: sharedContent,
@@ -23,14 +23,13 @@ document.getElementById('executeBtn').addEventListener('click', () => {
     };
 
     localStorage.setItem('gs_automation_payload', JSON.stringify(payload));
-    localStorage.setItem('gs_automation_active', 'true');
 
     statusLog.textContent = `Status: Opening Google Sites editor to process ${titlesArray.length} items...`;
 
-    // Open a blank Google Site creation page
+    // Open a blank Google Site editor tab
     const targetWindow = window.open('https://sites.google.com/u/0/new', '_blank');
 
-    // Inject automated watcher script loop once user arrives at the editor
+    // Continuous loop watcher to handle title filling, body insertion, and publishing page-by-page
     const checkInterval = setInterval(() => {
         if (!targetWindow || targetWindow.closed) {
             clearInterval(checkInterval);
@@ -39,32 +38,28 @@ document.getElementById('executeBtn').addEventListener('click', () => {
         
         try {
             if (targetWindow.location.href.includes('sites.google.com/d/')) {
-                statusLog.textContent = "Status: Google Site editor detected. Running automation tasks...";
+                statusLog.textContent = "Status: Google Site editor active. Running full automation loop...";
                 
-                // Inject the runner payload handler inside the target window
                 targetWindow.eval(`
                     (function() {
-                        if (window.hasRunAutomation) return;
-                        window.hasRunAutomation = true;
-
                         let data = JSON.parse(localStorage.getItem('gs_automation_payload'));
                         if (!data || data.currentIndex >= data.titles.length) {
-                            console.log("Automation sequence completed.");
+                            console.log("All batch items successfully processed!");
                             return;
                         }
 
                         let currentTitle = data.titles[data.currentIndex];
-                        console.log("Processing Title: " + currentTitle);
+                        console.log("Processing item " + (data.currentIndex + 1) + ": " + currentTitle);
 
-                        // 1. Fill Title Field
+                        // 1. Fill Page Title
                         let titleBox = document.querySelector('[aria-label="Page title"]');
-                        if (titleBox) {
+                        if (titleBox && titleBox.textContent !== currentTitle) {
                             titleBox.focus();
                             document.execCommand('selectAll', false, null);
                             document.execCommand('insertText', false, currentTitle);
                         }
 
-                        // 2. Click "Text box" element in sidebar
+                        // 2. Click "Text box" in the right sidebar
                         let divs = document.querySelectorAll('div');
                         for (let el of divs) {
                             if (el.textContent.trim() === 'Text box' && el.offsetParent !== null) {
@@ -73,11 +68,11 @@ document.getElementById('executeBtn').addEventListener('click', () => {
                             }
                         }
 
-                        // 3. Insert Body Content and Publish
+                        // 3. Insert Shared Body Content and click Publish
                         setTimeout(() => {
                             let editableFields = document.querySelectorAll('[contenteditable="true"]');
                             let latestField = editableFields[editableFields.length - 1];
-                            if (latestField) {
+                            if (latestField && !latestField.textContent.includes(data.content)) {
                                 latestField.focus();
                                 document.execCommand('insertText', false, data.content);
                             }
@@ -87,17 +82,25 @@ document.getElementById('executeBtn').addEventListener('click', () => {
                                 if (publishBtn) {
                                     publishBtn.click();
                                     
-                                    // Increment index for next loop or item
+                                    // Move to next index
                                     data.currentIndex++;
                                     localStorage.setItem('gs_automation_payload', JSON.stringify(data));
+                                    
+                                    // Handle final publish dialog click inside the modal if it pops up
+                                    setTimeout(() => {
+                                        let modalPublish = Array.from(document.querySelectorAll('button')).reverse().find(el => el.textContent.trim() === 'Publish' && el.offsetParent !== null);
+                                        if (modalPublish) {
+                                            modalPublish.click();
+                                        }
+                                    }, 1500);
                                 }
-                            }, 1000);
-                        }, 1000);
+                            }, 1500);
+                        }, 1500);
                     })();
                 `);
             }
         } catch (e) {
-            // Cross-origin safety boundary notice handling silently during navigation redirects
+            // Handles browser frame navigation safety securely
         }
-    }, 2000);
+    }, 3000);
 });
