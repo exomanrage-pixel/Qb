@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Google Sites Batch Automator</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Google Sites Batch Automator</h1>
+        <p class="subtitle">Automate creating pages and publishing content seamlessly.</p>
+
+        <div class="form-group">
+            <label for="sharedContent">Common Body Content (Applies to all pages):</label>
+            <textarea id="sharedContent" placeholder="Enter the text content that will remain the same for all pages..."></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="titlesInput">Page Titles (One per line):</label>
+            <textarea id="titlesInput" placeholder="Page Title 1&#10;Page Title 2&#10;Page Title 3"></textarea>
+        </div>
+
+        <button id="executeBtn">Execute Automation</button>
+        
+        <div id="statusLog" class="log-box">Status: Ready</div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
